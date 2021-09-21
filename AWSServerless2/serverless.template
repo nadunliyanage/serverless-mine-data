@@ -1,0 +1,182 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "AWS Serverless API that exposes the startmining and collectminingdata operations using Amazon DynamoDB.",
+  "Parameters": {
+    "ShouldCreateTable": {
+      "Type": "String",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Description": "If true then the DynamoDB MineData table will be created with the CloudFormation stack."
+    },
+    "MineDataTableName": {
+      "Type": "String",
+      "Description": "Name of DynamoDB table used to store the mining data. If left blank a new table will be created.",
+      "MinLength": "0"
+    },
+    "ReadCapacity": {
+      "Type": "Number",
+      "Description": "Read capacity for the DynamoDB mineData table.",
+      "Default": "3",
+      "MinValue": 1
+    },
+    "WriteCapacity": {
+      "Type": "Number",
+      "Description": "Write capacity for the DynamoDB mineData table.",
+      "Default": "3",
+      "MinValue": 1
+    }
+  },
+  "Conditions": {
+    "CreateMineDataTable": {
+      "Fn::Equals": [
+        {
+          "Ref": "ShouldCreateTable"
+        },
+        "true"
+      ]
+    },
+    "TableNameGenerated": {
+      "Fn::Equals": [
+        {
+          "Ref": "MineDataTableName"
+        },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "CollectMiningResultsFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "AWSServerless2::AWSServerless2.Functions::CollectMiningResults",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "Function to collect mining data between tha last 30 and 90 seconds",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambda_FullAccess"
+        ],
+        "Environment": {
+          "Variables": {
+            "MineDataTable": {
+              "Fn::If": [
+                "CreateMineDataTable",
+                {
+                  "Ref": "MineDataTable"
+                },
+                {
+                  "Ref": "MineDataTableName"
+                }
+              ]
+            }
+          }
+        },
+        "Events": {
+          "PutResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/v1/collect-mining-results/{Guid}",
+              "Method": "GET"
+            }
+          }
+        }
+      }
+    },
+    "StartMiningFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "AWSServerless2::AWSServerless2.Functions::StartMining",
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "Description": "Function to add a mine entry",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambda_FullAccess"
+        ],
+        "Environment": {
+          "Variables": {
+            "MineDataTable": {
+              "Fn::If": [
+                "CreateMineDataTable",
+                {
+                  "Ref": "MineDataTable"
+                },
+                {
+                  "Ref": "MineDataTableName"
+                }
+              ]
+            }
+          }
+        },
+        "Events": {
+          "PutResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/v1/start-mining",
+              "Method": "POST"
+            }
+          }
+        }
+      }
+    },
+    "MineDataTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Condition": "CreateMineDataTable",
+      "Properties": {
+        "TableName": {
+          "Fn::If": [
+            "TableNameGenerated",
+            {
+              "Ref": "AWS::NoValue"
+            },
+            {
+              "Ref": "MineDataTableName"
+            }
+          ]
+        },
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "Guid",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "Guid",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": {
+            "Ref": "ReadCapacity"
+          },
+          "WriteCapacityUnits": {
+            "Ref": "WriteCapacity"
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "MineDataTable": {
+      "Value": {
+        "Fn::If": [
+          "CreateMineDataTable",
+          {
+            "Ref": "MineDataTable"
+          },
+          {
+            "Ref": "MineDataTableName"
+          }
+        ]
+      }
+    }
+  }
+}
