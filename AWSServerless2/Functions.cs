@@ -35,7 +35,7 @@ namespace AWSServerless2
             // Check to see if a table name was passed in through environment variables and if so 
             // add the table mapping.
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
-            if(!string.IsNullOrEmpty(tableName))
+            if (!string.IsNullOrEmpty(tableName))
             {
                 AWSConfigsDynamoDB.Context.TypeMappings[typeof(MineData)] = new Amazon.Util.TypeMapping(typeof(MineData), tableName);
             }
@@ -103,15 +103,34 @@ namespace AWSServerless2
                     Body = $"Missing required parameter {ID_QUERY_STRING_NAME}"
                 };
             }
+            MineData mineResult = await DDBContext.LoadAsync<MineData>(minedGuid);
+            context.Logger.LogLine($"Found mine result: {mineResult != null}");
 
-            context.Logger.LogLine($"Deleting mineData with Guid {minedGuid}");
-            await this.DDBContext.DeleteAsync<MineData>(minedGuid);
-
-            return new APIGatewayProxyResponse
+            DateTime currentTime = DateTime.Now;
+            DateTime timeThirtySecBefore = currentTime.AddSeconds(-30);
+            DateTime timeNinetySecBefore = currentTime.AddSeconds(-90);
+            if (mineResult != null && mineResult.CreatedTimestamp > timeNinetySecBefore
+                && mineResult.CreatedTimestamp < timeThirtySecBefore)
             {
-                StatusCode = (int)HttpStatusCode.OK,
-                Body = new Random().Next(1, 100).ToString(),
-            };
+                context.Logger.LogLine($"Deleting mineData with Guid {minedGuid}");
+                await this.DDBContext.DeleteAsync<MineData>(minedGuid);
+
+                return new APIGatewayProxyResponse
+                {
+                    StatusCode = (int)HttpStatusCode.OK,
+                    Body = new Random().Next(1, 100).ToString(),
+                };
+            }
+            else
+            {
+                return new APIGatewayProxyResponse
+                {
+                    StatusCode = (int)HttpStatusCode.OK,
+                    Body = Convert.ToString(0),
+                };
+            }
+
+
         }
     }
 }
