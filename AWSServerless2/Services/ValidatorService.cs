@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using System.Net;
-using System.Threading.Tasks;
-
-using Amazon.Lambda.Core;
-using Amazon.Lambda.APIGatewayEvents;
-
-using Amazon;
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+﻿using Amazon.Lambda.APIGatewayEvents;
 
 namespace AWSServerless2.Services
 {

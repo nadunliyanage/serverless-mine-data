@@ -7,11 +7,8 @@ using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.APIGatewayEvents;
 
-using Amazon;
 using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
 
-using Newtonsoft.Json;
 using AWSServerless2.Services;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
